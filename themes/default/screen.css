@@ -20,7 +20,7 @@
     background-color: #999;
 }
 
-::-webkit-scrollbar-thumb:horizontal {
+::-webkit-scrollbar-thumb:horizontal {i
     width: 5px;
     background-color: #666;
     -webkit-border-radius: 3px;
@@ -92,13 +92,17 @@ a:hover,a:active {;
 /* ICONS */
 
 [class^="icon-"], [class*=" icon-"] {
-  font-family: entypo;
-  font-style: normal;
-  font-size: 75%;
-  display: inline-block;
-  margin-right: 8px;
-  text-align: center;
-  vertical-align: top;
+    font-family: entypo;
+    font-style: normal;
+    font-size: 75%;
+    display: inline-block;
+    margin-right: 8px;
+    text-align: center;
+    vertical-align: top;
+}
+
+.sb-right-content [class^="icon-"], .sb-right-content [class*=" icon-"] {
+    width: 16px;
 }
 
 /* Useful size modifiers for icons. */
@@ -143,7 +147,8 @@ label .icon {
     display: none;
 }
 
-input, textarea, select, button {
+
+#dependencies, input, textarea, select, button {
     display: block;
     width: 100%;
     padding: 7px 10px;
@@ -153,6 +158,15 @@ input, textarea, select, button {
     border-bottom: 2px solid #595959;
     color: #fff;
     border-radius: 2px;
+    line-height: normal;
+}
+
+#dependencies .error {
+	color: red;
+}
+
+#dependencies .success {
+	color: green;
 }
 
 select option { background: #242424; }
@@ -509,6 +523,7 @@ table [class^="icon-"], [class*=" icon-"] {
 .sidebar#sb-left {
     width: 300px;
     left: 0;
+    overflow:hidden;
 }
 #sb-left-title{
     position: absolute;
@@ -519,6 +534,7 @@ table [class^="icon-"], [class*=" icon-"] {
     height: 33px;
     background-color: #303030;
     box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.898) inset;
+    overflow:hidden;
 }
 #sb-left-title.active {
     border-bottom: 1px solid gray;
@@ -689,6 +705,13 @@ table [class^="icon-"], [class*=" icon-"] {
     overflow: auto;
 }
 
+.sb-right-category {
+    font-size:14px;
+    font-weight:600;
+    color:#7F7F7F;
+    padding-bottom:10px;
+}
+
 #sb-right a {
     display: block;
     min-width: 100%;
@@ -732,9 +755,11 @@ table [class^="icon-"], [class*=" icon-"] {
 
 #modal {
     display: none;
-    position: fixed;
+    position: absolute;
     top: 15%;
     left: 50%;
+    max-height: 70vh;
+	overflow: auto;
     background: #333;
     z-index: 9999999;
     min-height: 100px;

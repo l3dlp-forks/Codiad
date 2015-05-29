@@ -36,6 +36,18 @@
         "onclick": "codiad.filemanager.uploadToNode($('#context-menu').attr('data-path'));"
     },
     {
+        "title": "Preview",
+        "icon": "icon-eye",
+        "applies-to" : "both no-external",
+        "onclick": "codiad.filemanager.openInBrowser($('#context-menu').attr('data-path'));"
+    },
+    {
+        "title": "Break",
+        "icon": null,
+        "applies-to" : "file-only no-external",
+        "onclick": null
+    },
+    {
         "title": "Break",
         "icon": null,
         "applies-to" : "directory-only",
@@ -69,7 +81,7 @@
         "title": "Rename Project",
         "icon": "icon-pencil",
         "applies-to" : "root-only",
-        "onclick": "codiad.project.rename($('#context-menu').attr('data-path'));"
+        "onclick": "codiad.project.rename($('#context-menu').attr('data-path'),$('#context-menu').attr('data-name'));"
     },   
     {
         "title": "Break",

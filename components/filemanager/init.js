@@ -17,7 +17,7 @@
 
         clipboard: '',
 
-        noOpen: ['jpg', 'jpeg', 'png', 'gif', 'svg', 'bmp', 'exe', 'zip', 'tar', 'tar.gz'],
+        noOpen: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'exe', 'zip', 'tar', 'tar.gz'],
         noBrowser: ['jpg', 'jpeg', 'png', 'gif', 'bmp'],
 
         controller: 'components/filemanager/controller.php',
@@ -63,29 +63,53 @@
                 });
             $('#file-manager a')
                 .live('dblclick', function() { // Open or Expand
-                    if ($(this)
-                        .hasClass('directory')) {
-                        _this.index($(this)
-                            .attr('data-path'));
-                    } else {
-                        _this.openFile($(this)
-                            .attr('data-path'));
+                    if (!codiad.editor.settings.fileManagerTrigger) {
+                      if ($(this)
+                          .hasClass('directory')) {
+                          _this.index($(this)
+                              .attr('data-path'));
+                      } else {
+                          _this.openFile($(this)
+                              .attr('data-path'));
+                      }
+                      if (!$(this).parent().children("span").hasClass('none')) {
+                          if ($(this).parent().children("span").hasClass('plus')) {
+                              $(this).parent().children("span").removeClass('plus')
+                              $(this).parent().children("span").addClass('minus');
+                          } else {
+                              $(this).parent().children("span").removeClass('minus')
+                              $(this).parent().children("span").addClass('plus');
+                          }
+                      }
                     }
-                    if (!$(this).parent().children("span").hasClass('none')) {
-                        if ($(this).parent().children("span").hasClass('plus')) {
-                            $(this).parent().children("span").removeClass('plus')
-                            $(this).parent().children("span").addClass('minus');
-                        } else {
-                            $(this).parent().children("span").removeClass('minus')
-                            $(this).parent().children("span").addClass('plus');
-                        }
+                })
+                .live('click', function() { // Open or Expand
+                    if (codiad.editor.settings.fileManagerTrigger) {
+                      if ($(this)
+                          .hasClass('directory')) {
+                          _this.index($(this)
+                              .attr('data-path'));
+                      } else {
+                          _this.openFile($(this)
+                              .attr('data-path'));
+                      }
+                      if (!$(this).parent().children("span").hasClass('none')) {
+                          if ($(this).parent().children("span").hasClass('plus')) {
+                              $(this).parent().children("span").removeClass('plus')
+                              $(this).parent().children("span").addClass('minus');
+                          } else {
+                              $(this).parent().children("span").removeClass('minus')
+                              $(this).parent().children("span").addClass('plus');
+                          }
+                      }
                     }
                 })
                 .live("contextmenu", function(e) { // Context Menu
                     e.preventDefault();
                     _this.contextMenuShow(e, $(this)
                         .attr('data-path'), $(this)
-                        .attr('data-type'));
+                        .attr('data-type'), $(this)
+                        .html());
                     $(this)
                         .addClass('context-menu-active');
                 });
@@ -95,8 +119,7 @@
         // Context Menu
         //////////////////////////////////////////////////////////////////
 
-        contextMenuShow: function(e, path, type) {
-
+        contextMenuShow: function(e, path, type, name) {
             var _this = this;
 
             // Selective options
@@ -126,14 +149,25 @@
                 $('#context-menu .no-external').show();
             }
             // Show menu
+            var top = e.pageY;
+            if (top > $(window).height() - $('#context-menu').height()) {
+                top -= $('#context-menu').height();
+            }
+            if (top < 10) {
+                top = 10;
+            }
+            var max = $(window).height() - top - 10;
+            
             $('#context-menu')
                 .css({
-                'top': (e.pageY - 40) + 'px',
-                'left': (e.pageX - 30) + 'px'
-            })
+                    'top': top + 'px',
+                    'left': e.pageX + 'px',
+                    'max-height': max + 'px'
+                })
                 .fadeIn(200)
                 .attr('data-path', path)
-                .attr('data-type', type);
+                .attr('data-type', type)
+                .attr('data-name', name);
             // Show faded 'paste' if nothing in clipboard
             if (this.clipboard === '') {
                 $('#context-menu a[content="Paste"]')
@@ -147,6 +181,8 @@
                 .on('mouseover', function() {
                     _this.contextMenuHide();
                 });
+            /* Notify listeners. */
+            amplify.publish('context-menu.onShow', {e: e, path: path, type: type});
             // Hide on click
             $('#context-menu a')
                 .click(function() {
@@ -159,6 +195,8 @@
                 .fadeOut(200);
             $('#file-manager a')
                 .removeClass('context-menu-active');
+            /* Notify listeners. */
+            amplify.publish('context-menu.onHide');
         },
 
         //////////////////////////////////////////////////////////////////
@@ -226,7 +264,10 @@
         // Loop out all files and folders in directory path
         //////////////////////////////////////////////////////////////////
 
+        indexFiles: [],
+
         index: function(path, rescan) {
+            var _this = this;
             if (rescan === undefined) {
                 rescan = false;
             }
@@ -245,8 +286,14 @@
                     node.addClass('open');
                     var objectsResponse = codiad.jsend.parse(data);
                     if (objectsResponse != 'error') {
-                        files = objectsResponse.index;
+                        /* Notify listener */
+                        _this.indexFiles = objectsResponse.index;
+                        amplify.publish("filemanager.onIndex", {path: path, files: _this.indexFiles});
+                        var files = _this.indexFiles;
                         if (files.length > 0) {
+                            if (node.parent().children('span').hasClass('plus')) {
+                                node.parent().children('span').removeClass('plus').addClass('minus');
+                            }
                             var display = 'display:none;';
                             if (rescan) {
                                 display = '';
@@ -282,11 +329,11 @@
                         }
                     }
                     node.removeClass('loading');
-                    if (rescan && this.rescanChildren.length > this.rescanCounter) {
-                        this.rescan(this.rescanChildren[this.rescanCounter++]);
+                    if (rescan && _this.rescanChildren.length > _this.rescanCounter) {
+                        _this.rescan(_this.rescanChildren[_this.rescanCounter++]);
                     } else {
-                        this.rescanChildren = [];
-                        this.rescanCounter = 0;
+                        _this.rescanChildren = [];
+                        _this.rescanCounter = 0;
                     }
                 });
             }
@@ -339,7 +386,7 @@
                         this.openInModal(path);
                     }
                  } else {
-                    codiad.message.error('Unable to open file in Browser');
+                    codiad.message.error(i18n('Unable to open file in Browser'));
                  }
             }
         },
@@ -349,17 +396,21 @@
         //////////////////////////////////////////////////////////////////
 
         openInBrowser: function(path) {
-            $.get(this.controller + '?action=open_in_browser&path=' + path, function(data) {
-                var openIBResponse = codiad.jsend.parse(data);
-                if (openIBResponse != 'error') {
-                    window.open(openIBResponse.url, '_newtab');
-                }
+            $.ajax({
+                url: this.controller + '?action=open_in_browser&path=' + path,
+                success: function(data) {
+                    var openIBResponse = codiad.jsend.parse(data);
+                    if (openIBResponse != 'error') {
+                        window.open(openIBResponse.url, '_newtab');
+                    }
+                },
+                async: false
             });
         },
         openInModal: function(path) {
             codiad.modal.load(250, this.dialog, {
                         action: 'preview',
-                        path: 'workspace/' + path
+                        path: path
                     });
         },
         saveModifications: function(path, data, callbacks){
@@ -397,7 +448,7 @@
                             session.serverMTime = null;
                             session.untainted = null;
                         }
-                    } else codiad.message.error('File could not be saved');
+                    } else codiad.message.error(i18n('File could not be saved'));
                     if (typeof callbacks.error === 'function') {
                         var context = callbacks.context || _this;
                         callbacks.error.apply(context, [resp.data]);
@@ -450,6 +501,11 @@
                             codiad.modal.unload();
                             // Add new element to filemanager screen
                             codiad.filemanager.createObject(path, createPath, type);
+                            if(type == 'file') {
+                                codiad.filemanager.openFile(createPath, true);
+                            }
+                            /* Notify listeners. */
+                            amplify.publish('filemanager.onCreate', {createPath: createPath, path: path, shortName: shortName, type: type});
                         }
                     });
                 });
@@ -511,6 +567,8 @@
                     if (pasteResponse != 'error') {
                         _this.createObject(path, path + '/' + shortName, type);
                         codiad.modal.unload();
+                        /* Notify listeners. */
+                        amplify.publish('filemanager.onPaste', {path: path, shortName: shortName, duplicate: duplicate});
                     }
                 });
         },
@@ -619,6 +677,17 @@
                 action: 'search',
                 path: path
             });
+            codiad.modal.load_process.done( function() {
+                var lastSearched = JSON.parse(localStorage.getItem("lastSearched"));
+                if(lastSearched) {
+                    $('#modal-content form input[name="search_string"]').val(lastSearched.searchText);
+                    $('#modal-content form input[name="search_file_type"]').val(lastSearched.fileExtension);
+                    $('#modal-content form select[name="search_type"]').val(lastSearched.searchType);
+                    if(lastSearched.searchResults != '') {
+                      $('#filemanager-search-results').slideDown().html(lastSearched.searchResults);
+                    }
+                }
+            });
             codiad.modal.hideOverlay();
             var _this = this;
             $('#modal-content form')
@@ -628,14 +697,22 @@
                 e.preventDefault();
                 searchString = $('#modal-content form input[name="search_string"]')
                     .val();
+                fileExtensions=$('#modal-content form input[name="search_file_type"]')
+                     .val();
+                searchFileType=$.trim(fileExtensions);
+                if (searchFileType != '') {
+                    //season the string to use in find command
+                    searchFileType = "\\(" + searchFileType.replace(/\s+/g, "\\|") + "\\)";
+                }
                 searchType = $('#modal-content form select[name="search_type"]')
                     .val();
                 $.post(_this.controller + '?action=search&path=' + path + '&type=' + searchType, {
-                    search_string: searchString
+                    search_string: searchString,
+                    search_file_type: searchFileType
                 }, function(data) {
                     searchResponse = codiad.jsend.parse(data);
+                    var results = '';
                     if (searchResponse != 'error') {
-                        var results = '';
                         $.each(searchResponse.index, function(key, val) {
                             // Cleanup file format
                             if(val['file'].substr(-1) == '/') {
@@ -652,12 +729,25 @@
                         $('#filemanager-search-results')
                             .slideUp();
                     }
+                    _this.saveSearchResults(searchString, searchType, fileExtensions, results);
                     $('#filemanager-search-processing')
                         .hide();
                 });
             });
         },
 
+        /////////////////////////////////////////////////////////////////
+        // saveSearchResults
+        /////////////////////////////////////////////////////////////////
+        saveSearchResults: function(searchText, searchType, fileExtensions, searchResults) {
+            var lastSearched = {
+                searchText: searchText,
+                searchType: searchType,
+                fileExtension: fileExtensions,
+                searchResults: searchResults
+            };
+            localStorage.setItem("lastSearched", JSON.stringify(lastSearched));
+        },
         //////////////////////////////////////////////////////////////////
         // Upload
         //////////////////////////////////////////////////////////////////

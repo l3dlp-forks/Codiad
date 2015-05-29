@@ -18,8 +18,6 @@
     $users = $path . "/data/users.php";
     $projects = $path . "/data/projects.php";
     $active = $path . "/data/active.php";
-    $pluginpath = $path . "/plugins";
-    $plugins = $path . "/data/plugins.php";
     $config = $path . "/config.php";
 
 //////////////////////////////////////////////////////////////////////
@@ -122,24 +120,7 @@ if(!file_exists($users) && !file_exists($projects) && !file_exists($active)){
     //////////////////////////////////////////////////////////////////
 
     saveJSON($active,array(''));
-    //////////////////////////////////////////////////////////////////
-    // Create Plugin file
-    //////////////////////////////////////////////////////////////////
-
-    //read all directories from plugins
-    $pluginlist = array();
-    $allFiles = scandir($pluginpath);
-    foreach ($allFiles as $fname){
-        if($fname == '.' || $fname == '..' ){
-            continue;
-        }
-        if(is_dir($pluginpath.'/'.$fname)){
-            $pluginlist[] = $fname;
-        }
-    }
-
-    saveJSON($plugins,$pluginlist);
-
+    
     //////////////////////////////////////////////////////////////////
     // Create Config
     //////////////////////////////////////////////////////////////////
@@ -175,6 +156,8 @@ $cookie_lifetime = "0";
 // TIMEZONE
 date_default_timezone_set("' . $_POST['timezone'] . '");
 
+// External Authentification
+//define("AUTH_PATH", "/path/to/customauth.php");
 
 //////////////////////////////////////////////////////////////////
 // ** DO NOT EDIT CONFIG BELOW **
@@ -190,8 +173,13 @@ define("WORKSPACE", BASE_PATH . "/workspace");
 // URLS
 define("WSURL", BASE_URL . "/workspace");
 
-// Plugin Market
-define("PMURL", "http://codiad.com/plugins.json");
+// Marketplace
+//define("MARKETURL", "http://market.codiad.com/json");
+
+// Update Check
+//define("UPDATEURL", "http://update.codiad.com/?v={VER}&o={OS}&p={PHP}&w={WEB}&a={ACT}");
+//define("ARCHIVEURL", "https://github.com/Codiad/Codiad/archive/master.zip");
+//define("COMMITURL", "https://api.github.com/repos/Codiad/Codiad/commits");
 ';
 
     saveFile($config,$config_data);

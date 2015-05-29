@@ -19,6 +19,7 @@ class User {
     public $users       = '';
     public $actives     = '';
     public $lang        = '';
+    public $theme       = '';
 
     //////////////////////////////////////////////////////////////////
     // METHODS
@@ -49,6 +50,7 @@ class User {
                 $pass = true;
                 $_SESSION['user'] = $this->username;
                 $_SESSION['lang'] = $this->lang;
+                $_SESSION['theme'] = $this->theme;
                 if($user['project']!=''){ $_SESSION['project'] = $user['project']; }
             }
         }
@@ -114,7 +116,7 @@ class User {
         $revised_array = array();
         foreach($this->users as $user=>$data){
             if($data['username']==$this->username){
-                $revised_array[] = array("username"=>$data['username'],"password"=>$this->password);
+                $revised_array[] = array("username"=>$data['username'],"password"=>$this->password,"project"=>$data['project']);
             }else{
                 $revised_array[] = array("username"=>$data['username'],"password"=>$data['password'],"project"=>$data['project']);
             }

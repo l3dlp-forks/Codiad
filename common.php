@@ -64,6 +64,10 @@
             if(!defined('THEME')){
                 define("THEME", "default");
             }
+            
+            if(!defined('LANGUAGE')){
+                define("LANGUAGE", "en");
+            }
         }
 
         //////////////////////////////////////////////////////////////////
@@ -82,13 +86,36 @@
             session_name(md5(BASE_PATH));
 
             session_start();
+            
+            //Check for external authentification
+            if(defined('AUTH_PATH')){
+                require_once(AUTH_PATH);
+            }
 
             global $lang;
             if (isset($_SESSION['lang'])) {
                 include BASE_PATH."/languages/{$_SESSION['lang']}.php";
             } else {
-                include BASE_PATH."/languages/en.php";
+                include BASE_PATH."/languages/".LANGUAGE.".php";
             }
+        }
+
+        //////////////////////////////////////////////////////////////////
+        // Read Content of directory
+        //////////////////////////////////////////////////////////////////
+        
+        public static function readDirectory($foldername) {
+          $tmp = array();
+          $allFiles = scandir($foldername);
+          foreach ($allFiles as $fname){
+              if($fname == '.' || $fname == '..' ){
+                  continue;
+              }
+              if(is_dir($foldername.'/'.$fname)){
+                  $tmp[] = $fname;
+              }
+          }
+          return $tmp;
         }
 
         //////////////////////////////////////////////////////////////////
@@ -216,6 +243,28 @@
         }
 
         //////////////////////////////////////////////////////////////////
+        // Check Path
+        //////////////////////////////////////////////////////////////////
+
+        public static function checkPath($path) {
+            if(file_exists(DATA . "/" . $_SESSION['user'] . '_acl.php')){
+                foreach (getJSON($_SESSION['user'] . '_acl.php') as $projects=>$data) {
+                    if (strpos($path, $data) === 0) {
+                        return true;
+                    }
+                }
+            } else {
+                foreach(getJSON('projects.php') as $project=>$data){
+                    if (strpos($path, $data['path']) === 0) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+
+        //////////////////////////////////////////////////////////////////
         // Check Function Availability
         //////////////////////////////////////////////////////////////////
 
@@ -235,7 +284,15 @@
         //////////////////////////////////////////////////////////////////
 
         public static function isAbsPath( $path ) {
-            return ($path[0] === '/')?true:false;
+            return ($path[0] === '/' || $path[1] === ':')?true:false;
+        }
+        
+        //////////////////////////////////////////////////////////////////
+        // Check If WIN based system
+        //////////////////////////////////////////////////////////////////
+
+        public static function isWINOS( ) {
+            return (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN');
         }
 
     }
@@ -252,5 +309,6 @@
     function saveJSON($file,$data,$namespace=""){ Common::saveJSON($file,$data,$namespace); }
     function formatJSEND($status,$data=false){ return Common::formatJSEND($status,$data); }
     function checkAccess() { return Common::checkAccess(); }
+    function checkPath($path) { return Common::checkPath($path); }
     function isAvailable($func) { return Common::isAvailable($func); }
 ?>

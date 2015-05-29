@@ -27,6 +27,10 @@
                 codiad.project.create('true');
             });
             
+            $('#projects-manage').click(function(){
+                codiad.project.list();
+            });
+            
             $('#projects-collapse').click(function(){
                 if (!_this._sideExpanded) {
                     _this.projectsExpand();
@@ -49,7 +53,7 @@
                         .append('<ul><li><a id="project-root" data-type="root" class="directory" data-path="' + projectInfo.path + '">' + projectInfo.name + '</a></li></ul>');
                     codiad.filemanager.index(projectInfo.path);
                     codiad.user.project(projectInfo.path);
-                    codiad.message.success(i18n('Project ' + projectInfo.name + ' Loaded'));
+                    codiad.message.success(i18n('Project %{projectName}% Loaded', {projectName:projectInfo.name}));
                 }
             });
         },
@@ -67,6 +71,9 @@
                     _this.loadCurrent();
                     codiad.modal.unload();
                     codiad.user.project(path);
+                    localStorage.removeItem("lastSearched");
+                    /* Notify listeners. */
+                    amplify.publish('project.onOpen', path);
                 }
             });
         },
@@ -85,7 +92,7 @@
         // Load and list projects in the sidebar.
         //////////////////////////////////////////////////////////////////
         loadSide: function() {
-            $('.sb-projects-content').load(this.dialog + '?action=sidelist');
+            $('.sb-projects-content').load(this.dialog + '?action=sidelist&trigger='+localStorage.getItem('codiad.editor.fileManagerTrigger'));
             this._sideExpanded = true;
         },
         
@@ -148,6 +155,8 @@
                             _this.open(createResponse.path);
                             codiad.modal.unload();
                             _this.loadSide();
+                            /* Notify listeners. */
+                            amplify.publish('project.onCreate', {"name": projectName, "path": projectPath, "git_repo": gitRepo, "git_branch": gitBranch});
                         }
                     });
                 }
@@ -158,9 +167,9 @@
         // Rename Project
         //////////////////////////////////////////////////////////////////
 
-        rename: function(path) {
+        rename: function(path,name) {
             var _this = this;
-            codiad.modal.load(500, this.dialog + '?action=rename&path=' + escape(path));
+            codiad.modal.load(500, this.dialog + '?action=rename&path=' + escape(path) + '&name='+name);
             $('#modal-content form')
                 .live('submit', function(e) {
                 e.preventDefault();
@@ -175,6 +184,8 @@
                         _this.loadSide();
                         $('#file-manager a[data-type="root"]').html(projectName);
                         codiad.modal.unload();
+                        /* Notify listeners. */
+                        amplify.publish('project.onRename', {"path": projectPath, "name": projectName});
                     }
                 });
             });
@@ -192,31 +203,36 @@
                 e.preventDefault();
                 var projectPath = $('#modal-content form input[name="project_path"]')
                     .val();
-                $.get(_this.controller + '?action=delete&project_path=' + projectPath, function(data) {
-                    deleteResponse = codiad.jsend.parse(data);
-                    if (deleteResponse != 'error') {
-                        codiad.message.success('Project Deleted');
-                        var deletefiles = $('input:checkbox[name="delete"]:checked').val();
-                        var followlinks = $('input:checkbox[name="follow"]:checked').val();
-                        if( typeof deletefiles !== 'undefined' ) {
-                            if( typeof followlinks !== 'undefined' ) {
-                                $.get(codiad.filemanager.controller + '?action=delete&follow=true&path=' + projectPath);
-                            } else {
-                                $.get(codiad.filemanager.controller + '?action=delete&path=' + projectPath);
-                            }
-                        }
-                        _this.list();
-                        _this.loadSide();
-                        // Remove any active files that may be open
-                        $('#active-files a')
-                            .each(function() {
-                            var curPath = $(this)
-                                .attr('data-path');
-                            if (curPath.indexOf(projectPath) == 0) {
-                                codiad.active.remove(curPath);
-                            }
-                        });
+                var deletefiles = $('input:checkbox[name="delete"]:checked').val();
+                var followlinks = $('input:checkbox[name="follow"]:checked').val();
+                var action = '?action=delete';
+                if( typeof deletefiles !== 'undefined' ) {
+                    if( typeof followlinks !== 'undefined' ) {
+                        action += '&follow=true&path=' + projectPath;
+                    } else {
+                        action += '&path=' + projectPath;
                     }
+                }
+                $.get(codiad.filemanager.controller + action, function(d) {
+                    $.get(_this.controller + '?action=delete&project_path=' + projectPath, function(data) {
+                        deleteResponse = codiad.jsend.parse(data);
+                        if (deleteResponse != 'error') {
+                            codiad.message.success(i18n('Project Deleted'));
+                            _this.list();
+                            _this.loadSide();
+                            // Remove any active files that may be open
+                            $('#active-files a')
+                                .each(function() {
+                                var curPath = $(this)
+                                    .attr('data-path');
+                                if (curPath.indexOf(projectPath) == 0) {
+                                    codiad.active.remove(curPath);
+                                }
+                            });
+                            /* Notify listeners. */
+                            amplify.publish('project.onDelete', {"path": projectPath, "name": name});
+                        }
+                    });
                 });
             });
         },

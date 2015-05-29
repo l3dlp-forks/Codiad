@@ -41,10 +41,17 @@
                 $show = true;
                 if($projects_assigned && !in_array($data['path'],$projects_assigned)){ $show=false; }
                 if($show){
+                  if($_GET['trigger'] == 'true') {
                 ?>
                 <li onclick="codiad.project.open('<?php echo($data['path']); ?>');"><div class="icon-archive icon"></div><?php echo($data['name']); ?></li>
                 
                 <?php
+                } else {
+                ?>
+                <li ondblclick="codiad.project.open('<?php echo($data['path']); ?>');"><div class="icon-archive icon"></div><?php echo($data['name']); ?></li>
+                
+                <?php
+                }
                 }
             } 
             ?>
@@ -72,11 +79,14 @@
             <div id="project-list">
             <table width="100%">
                 <tr>
-                    <th width="5"><?php i18n("Open"); ?></th>
-                    <th><?php i18n("Project Name"); ?></th>
-                    <th><?php i18n("Path"); ?></th>
-                    <?php if(checkAccess()){ ?><th width="5"><?php i18n("Delete"); ?></th><?php } ?>
+                    <th width="70"><?php i18n("Open"); ?></th>
+                    <th width="150"><?php i18n("Project Name"); ?></th>
+                    <th width="250"><?php i18n("Path"); ?></th>
+                    <?php if(checkAccess()){ ?><th width="70"><?php i18n("Delete"); ?></th><?php } ?>
                 </tr>
+            </table>
+            <div class="project-wrapper">
+            <table width="100%" style="word-wrap: break-word;word-break: break-all;">    
             <?php
             
             // Get projects JSON data
@@ -88,18 +98,18 @@
                 if($show){
                 ?>
                 <tr>
-                    <td><a onclick="codiad.project.open('<?php echo($data['path']); ?>');" class="icon-folder bigger-icon"></a></td>
-                    <td><?php echo($data['name']); ?></td>
-                    <td><?php echo($data['path']); ?></td>
+                    <td width="70"><a onclick="codiad.project.open('<?php echo($data['path']); ?>');" class="icon-folder bigger-icon"></a></td>
+                    <td width="150"><?php echo($data['name']); ?></td>
+                    <td width="250"><?php echo($data['path']); ?></td>
                     <?php
                         if(checkAccess()){
                             if($_SESSION['project'] == $data['path']){
                             ?>
-                            <td><a onclick="codiad.message.error('Active Project Cannot Be Removed');" class="icon-block bigger-icon"></a></td>
+                            <td width="70"><a onclick="codiad.message.error(i18n('Active Project Cannot Be Removed'));" class="icon-block bigger-icon"></a></td>
                             <?php
                             }else{
                             ?>
-                            <td><a onclick="codiad.project.delete('<?php echo($data['name']); ?>','<?php echo($data['path']); ?>');" class="icon-cancel-circled bigger-icon"></a></td>
+                            <td width="70"><a onclick="codiad.project.delete('<?php echo($data['name']); ?>','<?php echo($data['path']); ?>');" class="icon-cancel-circled bigger-icon"></a></td>
                             <?php
                             }
                         }
@@ -110,6 +120,7 @@
             }
             ?>
             </table>
+            </div>
             </div>
             <?php if(checkAccess()){ ?><button class="btn-left" onclick="codiad.project.create();"><?php i18n("New Project"); ?></button><?php } ?>
     		<button class="<?php if(checkAccess()){ echo('btn-right'); } ?>" onclick="codiad.modal.unload();return false;"><?php i18n("Close"); ?></button>
@@ -127,13 +138,9 @@
             <form>
             <label><?php i18n("Project Name"); ?></label>
             <input name="project_name" autofocus="autofocus" autocomplete="off">
-            <?php if (strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') { ?>
             <label><?php i18n("Folder Name or Absolute Path"); ?></label>
             <input name="project_path" autofocus="off" autocomplete="off">
-            <?php } else { ?>
-            <input type="hidden" name="project_path">
-            <?php }  ?>
-            
+                        
             <!-- Clone From GitHub -->
             <div style="width: 500px;">
             <table class="hide" id="git-clone">
@@ -174,7 +181,7 @@
         <form>
         <input type="hidden" name="project_path" value="<?php echo($_GET['path']); ?>">
         <label><span class="icon-pencil"></span><?php i18n("Rename Project"); ?></label>    
-        <input type="text" name="project_name" autofocus="autofocus" autocomplete="off" value="<?php echo($_GET['project_name']); ?>">  
+        <input type="text" name="project_name" autofocus="autofocus" autocomplete="off" value="<?php echo($_GET['name']); ?>">  
         <button class="btn-left"><?php i18n("Rename"); ?></button>&nbsp;<button class="btn-right" onclick="codiad.modal.unload(); return false;"><?php i18n("Cancel"); ?></button>
         <form>
         <?php
@@ -190,7 +197,7 @@
             <form>
             <input type="hidden" name="project_path" value="<?php echo($_GET['path']); ?>">
             <label><?php i18n("Confirm Project Deletion"); ?></label>
-            <pre><?php i18n("Name:"); ?> <?php echo($_GET['name']); ?>, Path: <?php echo($_GET['path']); ?></pre>
+            <pre><?php i18n("Name:"); ?> <?php echo($_GET['name']); ?>, <?php i18n("Path:") ?> <?php echo($_GET['path']); ?></pre>
             <table>
             <tr><td width="5"><input type="checkbox" name="delete" id="delete" value="true"></td><td><?php i18n("Delete Project Files"); ?></td></tr>
             <tr><td width="5"><input type="checkbox" name="follow" id="follow" value="true"></td><td><?php i18n("Follow Symbolic Links "); ?></td></tr>

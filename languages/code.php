@@ -6,6 +6,14 @@ $languages = array(
     "ru" => "русский",
     "de" => "deutsch",
     "es" => "español",
-    "pt" => "português"
+    "pt" => "português",
+    "ro" => "romanian",
+    "hu" => "magyar",
+    "sv" => "swedish",
+    "cn" => "简体中文",
+    "pl" => "polish",
+    "cz" => "česky",
+    "sk" => "slovak",
+    "sr" => "српски"
 );
 ?>

@@ -6,9 +6,9 @@
 
 (function(global, $) {
 
-    var EditSession = require('ace/edit_session')
+    var EditSession = ace.require('ace/edit_session')
         .EditSession;
-    var UndoManager = require('ace/undomanager')
+    var UndoManager = ace.require('ace/undomanager')
         .UndoManager;
 
     var codiad = global.codiad;
@@ -87,6 +87,8 @@
                     codiad.editor.setSession(session);
                 }
                 _this.add(path, session, focus);
+                /* Notify listeners. */
+                amplify.publish('active.onOpen', path);
             };
 
             // Assuming the mode file has no dependencies
@@ -380,10 +382,12 @@
             
             if(path != this.getPath()) {
                 codiad.editor.setSession(this.sessions[path]);
-                this.check(path);
                 this.history.push(path);
                 $.get(this.controller, {'action':'focused', 'path':path});
             }
+            
+            /* Check for users registered on the file. */
+            this.check(path);
 
             /* Notify listeners. */
             amplify.publish('active.onFocus', path);
@@ -446,6 +450,9 @@
         //////////////////////////////////////////////////////////////////
 
         save: function(path) {
+            /* Notify listeners. */
+            amplify.publish('active.onSave', path);
+
             var _this = this;
             if ((path && !this.isOpen(path)) || (!path && !codiad.editor.getActive())) {
                 codiad.message.error(i18n('No Open Files to save'));
@@ -526,7 +533,11 @@
             }
         },
         
-        removeAll: function() {
+        removeAll: function(discard) {
+            discard = discard || false;
+            /* Notify listeners. */
+            amplify.publish('active.onRemoveAll');
+
             var _this = this;
             var changed = false;
             
@@ -537,11 +548,9 @@
                     changed = true;
                }
             }
-            
-            if(changed) {
-                if(confirm('Found unsaved Files. Do you want to save them?')) {
-                    _this.saveAll();
-                }
+            if(changed && !discard) {
+                codiad.modal.load(450, 'components/active/dialog.php?action=confirmAll');
+                return;
             } 
             
             for(var tab in opentabs) {
@@ -628,11 +637,21 @@
             var switchSessions = function(oldPath, newPath) {
                 var tabThumb = this.sessions[oldPath].tabThumb;
                 tabThumb.attr('data-path', newPath);
+                var title = newPath;
+                if (codiad.project.isAbsPath(newPath)) {
+                    title = newPath.substring(1);
+                }
                 tabThumb.find('.label')
-                    .text(newPath.substring(1));
+                    .text(title);
                 this.sessions[newPath] = this.sessions[oldPath];
                 this.sessions[newPath].path = newPath;
-                this.sessions[oldPath] = undefined;
+                delete this.sessions[oldPath];
+                //Rename history
+                for (var i = 0; i < this.history.length; i++) {
+                    if (this.history[i] === oldPath) {
+                        this.history[i] = newPath;
+                    }
+                }
             };
             if (this.sessions[oldPath]) {
                 // A file was renamed
@@ -658,7 +677,6 @@
 
                 newSession.on("changeMode", fn);
                 newSession.setMode("ace/mode/" + mode);
-
             } else {
                 // A folder was renamed
                 var newKey;
@@ -669,7 +687,10 @@
                     }
                 }
             }
-            $.get(this.controller + '?action=rename&old_path=' + oldPath + '&new_path=' + newPath);
+            $.get(this.controller + '?action=rename&old_path=' + oldPath + '&new_path=' + newPath, function() {
+                /* Notify listeners. */
+                amplify.publish('active.onRename', {"oldPath": oldPath, "newPath": newPath});
+            });
         },
 
         //////////////////////////////////////////////////////////////////

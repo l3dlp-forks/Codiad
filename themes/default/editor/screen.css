@@ -1,5 +1,6 @@
 #editor-region {
-    width: 100%;
+    width: auto;
+    padding-right:10px;
     height: 100%;
 }
 .editor {

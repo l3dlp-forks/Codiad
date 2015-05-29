@@ -4,10 +4,14 @@
 config.php
 data/
 workspace/
-plugins/
+plugins/*
+!plugins/README.md
+themes/*
+!themes/default/
+!themes/README.md
 .project
 .buildpath
 .settings/
 .svn/
-components/update/version.json
-
+vendor/
+composer.lock

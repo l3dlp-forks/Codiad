@@ -10,34 +10,15 @@ $context_menu = json_decode($context_menu,true);
 $right_bar = file_get_contents(COMPONENTS . "/right_bar.json");
 $right_bar = json_decode($right_bar,true);
 
-// Components
-$components = array();
-//read all directories from components
-$allFiles = scandir(COMPONENTS);
-foreach ($allFiles as $fname){
-    if($fname == '.' || $fname == '..' ){
-        continue;
-    }
-    if(is_dir(COMPONENTS.'/'.$fname)){
-        $components[] = $fname;
-    }
-}
+// Read Components, Plugins, Themes
+$components = Common::readDirectory(COMPONENTS);
+$plugins = Common::readDirectory(PLUGINS);
+$themes = Common::readDirectory(THEMES);
 
-// Plugins
-$plugins = array();
-if(!file_exists(DATA . '/plugins.php')) {
-    //read all directories from plugins
-    $allFiles = scandir(PLUGINS);
-    foreach ($allFiles as $fname){
-        if($fname == '.' || $fname == '..' ){
-            continue;
-        }
-        if(is_dir(PLUGINS.'/'.$fname)){
-            $plugins[] = $fname;
-        }
-    }
-} else {
-    $plugins = getJSON('plugins.php');
+// Theme
+$theme = THEME;
+if(isset($_SESSION['theme'])) {
+  $theme = $_SESSION['theme'];
 }
 
 ?>
@@ -45,14 +26,14 @@ if(!file_exists(DATA . '/plugins.php')) {
 
 <head>
     <meta charset="utf-8">
-    <title>CODIAD</title>
+    <title><?php i18n("CODIAD"); ?></title>
     <?php
     // Load System CSS Files
     $stylesheets = array("jquery.toastmessage.css","reset.css","fonts.css","screen.css");
    
     foreach($stylesheets as $sheet){
-        if(file_exists(THEMES . "/". THEME . "/".$sheet)){
-            echo('<link rel="stylesheet" href="themes/'.THEME.'/'.$sheet.'">');
+        if(file_exists(THEMES . "/". $theme . "/".$sheet)){
+            echo('<link rel="stylesheet" href="themes/'.$theme.'/'.$sheet.'">');
         } else {
             echo('<link rel="stylesheet" href="themes/default/'.$sheet.'">');
         }
@@ -60,8 +41,8 @@ if(!file_exists(DATA . '/plugins.php')) {
     
     // Load Component CSS Files    
     foreach($components as $component){
-        if(file_exists(THEMES . "/". THEME . "/" . $component . "/screen.css")){
-            echo('<link rel="stylesheet" href="themes/'.THEME.'/'.$component.'/screen.css">');
+        if(file_exists(THEMES . "/". $theme . "/" . $component . "/screen.css")){
+            echo('<link rel="stylesheet" href="themes/'.$theme.'/'.$component.'/screen.css">');
         } else {
             if(file_exists("themes/default/" . $component . "/screen.css")){
                 echo('<link rel="stylesheet" href="themes/default/'.$component.'/screen.css">');
@@ -75,8 +56,8 @@ if(!file_exists(DATA . '/plugins.php')) {
     
     // Load Plugin CSS Files    
     foreach($plugins as $plugin){
-        if(file_exists(THEMES . "/". THEME . "/" . $plugin . "/screen.css")){
-            echo('<link rel="stylesheet" href="themes/'.THEME.'/'.$plugin.'/screen.css">');
+        if(file_exists(THEMES . "/". $theme . "/" . $plugin . "/screen.css")){
+            echo('<link rel="stylesheet" href="themes/'.$theme.'/'.$plugin.'/screen.css">');
         } else {
             if(file_exists("themes/default/" . $plugin . "/screen.css")){
                 echo('<link rel="stylesheet" href="themes/default/'.$plugin.'/screen.css">');
@@ -88,14 +69,19 @@ if(!file_exists(DATA . '/plugins.php')) {
         }
     }
     ?>
-    <link rel="icon"       href="favicon.ico" type="image/x-icon" />
+    <link rel="icon" href="favicon.ico" type="image/x-icon" />
 </head>
 
 <body>
     <script>
     var i18n = (function(lang) {
-        return function(word) {
-            return (word in lang) ? lang[word] : word;
+        return function(word,args) {
+            var x;
+            var returnw = (word in lang) ? lang[word] : word;
+            for(x in args){
+                returnw=returnw.replace("%{"+x+"}%",args[x]);   
+            }
+            return returnw;
         }
     })(<?php echo json_encode($lang); ?>)
     </script>
@@ -138,15 +124,28 @@ if(!file_exists(DATA . '/plugins.php')) {
 
             <form id="login" method="post" style="position: fixed; width: 350px; top: 30%; left: 50%; margin-left: -175px; padding: 35px;">
 
-                <label><span class="icon-user login-icon"></span> Username</label>
+                <label><span class="icon-user login-icon"></span> <?php i18n("Username"); ?></label>
                 <input type="text" name="username" autofocus="autofocus" autocomplete="off">
 
-                <label><span class="icon-lock login-icon"></span> Password</label>
+                <label><span class="icon-lock login-icon"></span> <?php i18n("Password"); ?></label>
                 <input type="password" name="password">
                 
                 <div class="language-selector">
-                    <label><span class="icon-language login-icon"></span> Language</label>
-                    <select name="language">
+                    <label><span class="icon-picture login-icon"></span> <?php i18n("Theme"); ?></label>
+                    <select name="theme" id="theme">
+                        <option value="default"><?php i18n("Default"); ?></option>
+                        <?php
+                        include 'languages/code.php';
+                        foreach($themes as $theme): 
+                            if(file_exists(THEMES."/" . $theme . "/theme.json")) {
+                                $data = file_get_contents(THEMES."/" . $theme . "/theme.json");
+                                $data = json_decode($data,true);
+                            ?>
+                            <option value="<?php echo $theme; ?>" <?php if($theme == THEME) { echo "selected"; } ?>><?php if($data[0]['name'] != '') { echo $data[0]['name']; } else { echo $theme; } ?></option>
+                        <?php } endforeach; ?>
+                    </select>
+                    <label><span class="icon-language login-icon"></span> <?php i18n("Language"); ?></label>
+                    <select name="language" id="language">
                         <?php
                         include 'languages/code.php';
                         foreach(glob("languages/*.php") as $filename): 
@@ -159,9 +158,9 @@ if(!file_exists(DATA . '/plugins.php')) {
                     </select>
                 </div>
                 
-                <button>Login</button>
+                <button><?php i18n("Login"); ?></button>
 
-                <a class="show-language-selector">Language</a>
+                <a class="show-language-selector"><?php i18n("More"); ?></a>
 
             </form>
 
@@ -182,6 +181,10 @@ if(!file_exists(DATA . '/plugins.php')) {
 
         <div id="sb-left" class="sidebar">
             <div id="sb-left-title">
+                <a id="lock-left-sidebar" class="icon-lock icon"></a>
+                <?php if (!common::isWINOS()) { ?>
+                <a id="finder-quick" class="icon icon-archive"></a>
+                <a id="tree-search" class="icon-search icon"></a>
                 <h2 id="finder-label"> <?php i18n("Explore"); ?> </h2>
                 <div id="finder-wrapper">
                    <a id="finder-options" class="icon icon-cog"></a>
@@ -195,9 +198,7 @@ if(!file_exists(DATA . '/plugins.php')) {
                       <li><a data-action="search"><?php i18n("Search File Contents"); ?></a></li>
                    </ul>
                 </div>
-                <a id="lock-left-sidebar" class="icon-lock icon"></a>
-                <a id="finder-quick" class="icon icon-archive"></a>
-                <a id="tree-search" class="icon-search icon"></a>
+                <?php } ?>
             </div>
 
             <div class="sb-left-content">
@@ -225,9 +226,11 @@ if(!file_exists(DATA . '/plugins.php')) {
                                 $pdata = json_decode($pdata,true);
                                 if(isset($pdata[0]['contextmenu'])) {
                                     foreach($pdata[0]['contextmenu'] as $contextmenu) {
-                                        if(isset($contextmenu['applies-to']) && isset($contextmenu['action']) && isset($contextmenu['icon']) && isset($contextmenu['title'])) {
-                                            echo('<hr class="'.$contextmenu['applies-to'].'">');
-                                            echo('<a class="'.$contextmenu['applies-to'].'" onclick="'.$contextmenu['action'].'"><span class="'.$contextmenu['icon'].'"></span>'.$contextmenu['title'].'</a>');
+                                        if((!isset($contextmenu['admin']) || ($contextmenu['admin']) && checkAccess()) || !$contextmenu['admin']){
+                                            if(isset($contextmenu['applies-to']) && isset($contextmenu['action']) && isset($contextmenu['icon']) && isset($contextmenu['title'])) {
+                                                echo('<hr class="'.$contextmenu['applies-to'].'">');
+                                                echo('<a class="'.$contextmenu['applies-to'].'" onclick="'.$contextmenu['action'].'"><span class="'.$contextmenu['icon'].'"></span>'.$contextmenu['title'].'</a>');
+                                            }
                                         }
                                     }
                                 }
@@ -251,6 +254,7 @@ if(!file_exists(DATA . '/plugins.php')) {
                         <h2><?php i18n("Projects"); ?></h2>
                         <a id="projects-collapse" class="icon-down-dir icon" alt="<?php i18n("Collapse"); ?>"></a>
                         <?php if(checkAccess()) { ?>
+                        <a id="projects-manage" class="icon-archive icon"></a>
                         <a id="projects-create" class="icon-plus icon" alt="<?php i18n("Create Project"); ?>"></a>
                         <?php } ?>
                     </div>
@@ -264,7 +268,7 @@ if(!file_exists(DATA . '/plugins.php')) {
 
         </div>
 
-        <div id="cursor-position">Ln: 0 &middot; Col: 0</div>
+        <div id="cursor-position"><?php i18n("Ln"); ?>: 0 &middot; <?php i18n("Col"); ?>: 0</div>
 
         <div id="editor-region">
             <div id="editor-top-bar">
@@ -273,7 +277,7 @@ if(!file_exists(DATA . '/plugins.php')) {
                     <a id="tab-dropdown-button" class="icon-down-open"></a>
                 </div>
                 <div id="tab-close">
-                    <a id="tab-close-button" class="icon-cancel-circled"></a>
+                    <a id="tab-close-button" class="icon-cancel-circled" title="<?php i18n("Close All") ?>"></a>
                 </div>
                 <ul id="dropdown-list-active-files"></ul>
                 <div class="bar"></div>
@@ -283,10 +287,36 @@ if(!file_exists(DATA . '/plugins.php')) {
 
             <div id="editor-bottom-bar">
                 <a id="settings" class="ico-wrapper"><span class="icon-doc-text"></span><?php i18n("Settings"); ?></a>
+                
+                <?php
+
+                    ////////////////////////////////////////////////////////////
+                    // Load Plugins
+                    ////////////////////////////////////////////////////////////
+                    
+                    foreach ($plugins as $plugin){
+                         if(file_exists(PLUGINS . "/" . $plugin . "/plugin.json")) {
+                            $pdata = file_get_contents(PLUGINS . "/" . $plugin . "/plugin.json");
+                            $pdata = json_decode($pdata,true);
+                            if(isset($pdata[0]['bottombar'])) {
+                                foreach($pdata[0]['bottombar'] as $bottommenu) {
+                                    if((!isset($bottommenu['admin']) || ($bottommenu['admin']) && checkAccess()) || !$bottommenu['admin']){
+                                        if(isset($bottommenu['action']) && isset($bottommenu['icon']) && isset($bottommenu['title'])) {
+                                            echo('<div class="divider"></div>');
+                                            echo('<a onclick="'.$bottommenu['action'].'"><span class="'.$bottommenu['icon'].'"></span>'.$bottommenu['title'].'</a>');
+                                        }
+                                    }
+                                }
+                            }
+                         }
+                    }
+
+                ?>
+                
                 <div class="divider"></div>
                 <a id="split" class="ico-wrapper"><span class="icon-layout"></span><?php i18n("Split"); ?></a>
                 <div class="divider"></div>
-                <a id="current-mode"><span class="icon-layout"></span></a>
+                <a id="current-mode"><span class="icon-layout"></span></a>                
                 <div class="divider"></div>
                 <div id="current-file"></div>
             </div>
@@ -315,27 +345,40 @@ if(!file_exists(DATA . '/plugins.php')) {
                 ////////////////////////////////////////////////////////////
 
                 foreach($right_bar as $item_rb=>$data){
-
+                    if(!isset($data['admin'])) {
+                      $data['admin'] = false;
+                    }
                     if($data['title']=='break'){
-                        echo("<hr>");
-                    } else if ($data['title']=='plugins'){
-                        echo("<hr>");
-                        foreach ($plugins as $plugin){
-                             if(file_exists(PLUGINS . "/" . $plugin . "/plugin.json")) {
-                                $pdata = file_get_contents(PLUGINS . "/" . $plugin . "/plugin.json");
-                                $pdata = json_decode($pdata,true);
-                                if(isset($pdata[0]['rightbar'])) {
-                                    foreach($pdata[0]['rightbar'] as $rightbar) {
-                                        if(isset($rightbar['action']) && isset($rightbar['icon']) && isset($rightbar['title'])) {
-                                            echo('<a onclick="'.$rightbar['action'].'"><span class="'.$rightbar['icon'].'"></span>'.$rightbar['title'].'</a>');
+                        if(!$data['admin'] || $data['admin'] && checkAccess()) {
+                            echo("<hr>");
+                        }
+                    }else if($data['title']!='break' && $data['title']!='pluginbar' && $data['onclick'] == ''){
+                        if(!$data['admin'] || $data['admin'] && checkAccess()) {
+                            echo("<hr><div class='sb-right-category'>".get_i18n($data['title'])."</div>");
+                        }
+                    }else if ($data['title']=='pluginbar'){
+                        if(!$data['admin'] || $data['admin'] && checkAccess()) {
+                            foreach ($plugins as $plugin){
+                                 if(file_exists(PLUGINS . "/" . $plugin . "/plugin.json")) {
+                                    $pdata = file_get_contents(PLUGINS . "/" . $plugin . "/plugin.json");
+                                    $pdata = json_decode($pdata,true);
+                                    if(isset($pdata[0]['rightbar'])) {
+                                        foreach($pdata[0]['rightbar'] as $rightbar) {
+                                            if((!isset($rightbar['admin']) || ($rightbar['admin']) && checkAccess()) || !$rightbar['admin']){
+                                                if(isset($rightbar['action']) && isset($rightbar['icon']) && isset($rightbar['title'])) {
+                                                    echo('<a onclick="'.$rightbar['action'].'"><span class="'.$rightbar['icon'].'"></span>'.get_i18n($rightbar['title']).'</a>');
+                                                }
+                                            }
                                         }
+                                        //echo("<hr>");
                                     }
-                                    echo("<hr>");
-                                }
-                             }
+                                 }
+                            }
                         }
                     } else{
-                        echo('<a onclick="'.$data['onclick'].'"><span class="'.$data['icon'].' bigger-icon"></span>'.get_i18n($data['title']).'</a>');
+                        if(!$data['admin'] || $data['admin'] && checkAccess()) {
+                            echo('<a onclick="'.$data['onclick'].'"><span class="'.$data['icon'].' bigger-icon"></span>'.get_i18n($data['title']).'</a>');
+                        }
                     }
 
                 }

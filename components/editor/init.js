@@ -7,10 +7,10 @@
 (function(global, $) {
 
     // Classes from Ace
-    var VirtualRenderer = require('ace/virtual_renderer').VirtualRenderer;
-    var Editor = require('ace/editor').Editor;
-    var EditSession = require('ace/edit_session').EditSession;
-    var UndoManager = require("ace/undomanager").UndoManager;
+    var VirtualRenderer = ace.require('ace/virtual_renderer').VirtualRenderer;
+    var Editor = ace.require('ace/editor').Editor;
+    var EditSession = ace.require('ace/edit_session').EditSession;
+    var UndoManager = ace.require("ace/undomanager").UndoManager;
 
     // Editor modes that have been loaded
     var editorModes = {};
@@ -27,32 +27,55 @@
     // modes available for selecting
     var availableTextModes = new Array(
         'abap',
+        'actionscript',
+        'ada',
+        'apache_conf',
+        'applescript',
         'asciidoc',
+        'assembly_x86',
+        'autohotkey',
+        'batchfile',
         'c9search',
         'c_cpp',
+        'cirru',
         'clojure',
+        'cobol',
         'coffee',
         'coldfusion',
         'csharp',
         'css',
         'curly',
+        'd',
         'dart',
         'diff',
         'django',
+        'dockerfile',
         'dot',
+        'ejs',
+        'erlang',
+        'forth',
         'ftl',
+        'gherkin',
+        'gitignore',
         'glsl',
         'golang',
         'groovy',
         'haml',
+        'handlebars',
+        'haskell',
         'haxe',
         'html',
+        'html_ruby',
+        'ini',
+        'jack',
         'jade',
         'java',
         'javascript',
         'json',
+        'jsoniq',
         'jsp',
         'jsx',
+        'julia',
         'latex',
         'less',
         'liquid',
@@ -63,27 +86,40 @@
         'lua',
         'luapage',
         'lucene',
+        'matlab',
         'makefile',
         'markdown',
+        'mel',
         'mushcode',
+        'mysql',
+        'nix',
         'objectivec',
         'ocaml',
         'pascal',
         'perl',
         'pgsql',
         'php',
+        'plain_text',
         'powershell',
+        'prolog',
+        'protobuf',
         'python',
         'r',
         'rdoc',
         'rhtml',
         'ruby',
+        'rust',
         'sass',
         'scad',
         'scala',
         'scheme',
         'scss',
         'sh',
+        'sjs',
+        'smarty',
+        'snippets',
+        'soy_template',
+        'space',
         'sql',
         'stylus',
         'svg',
@@ -91,11 +127,14 @@
         'tex',
         'text',
         'textile',
-        'tmsnippet',
         'toml',
         'typescript',
+        'twig',
+        'vala',
         'vbscript',
         'velocity',
+        'verilog',
+        'vhdl',
         'xml',
         'xquery',
         'yaml'
@@ -334,6 +373,9 @@
             indentGuides: true,
             wrapMode: false,
             softTabs: false,
+            persistentModal: true,
+            rightSidebarTrigger: false,
+            fileManagerTrigger: false,
             tabSize: 4
         },
    
@@ -378,14 +420,14 @@
 
             var _this = this;
 
-            $.each(['theme', 'fontSize', "tabSize"], function(idx, key) {
+            $.each(['theme', 'fontSize', 'tabSize'], function(idx, key) {
                 var localValue = localStorage.getItem('codiad.editor.' + key);
                 if (localValue !== null) {
                     _this.settings[key] = localValue;
                 }
             });
 
-            $.each(['printMargin', 'highlightLine', 'indentGuides', 'wrapMode', 'rightSidebarTrigger', "softTabs"],
+            $.each(['printMargin', 'highlightLine', 'indentGuides', 'wrapMode', 'rightSidebarTrigger', 'fileManagerTrigger', 'softTabs', 'persistentModal'],
                    function(idx, key) {
                        var localValue =
                            localStorage.getItem('codiad.editor.' + key);
@@ -394,6 +436,30 @@
                        }
                        _this.settings[key] = (localValue == 'true');
                    });
+        },
+
+        /////////////////////////////////////////////////////////////////
+        //
+        // Apply configuration settings
+        //
+        // Parameters:
+        //   i - {Editor}
+        //
+        /////////////////////////////////////////////////////////////////
+
+        applySettings: function(i) {
+            // Check user-specified settings
+            this.getSettings();
+
+            // Apply the current configuration settings:
+            i.setTheme('ace/theme/' + this.settings.theme);
+            i.setFontSize(this.settings.fontSize);
+            i.setShowPrintMargin(this.settings.printMargin);
+            i.setHighlightActiveLine(this.settings.highlightLine);
+            i.setDisplayIndentGuides(this.settings.indentGuides);
+            i.getSession().setUseWrapMode(this.settings.wrapMode);
+            this.setTabSize(this.settings.tabSize, i);
+            this.setSoftTabs(this.settings.softTabs, i);
         },
 
         //////////////////////////////////////////////////////////////////
@@ -468,19 +534,6 @@
 
             i.el = el;
             this.setSession(session, i);
-
-            // Check user-specified settings
-            this.getSettings();
-
-            // Apply the current configuration settings:
-            i.setTheme('ace/theme/' + this.settings.theme);
-            i.setFontSize(this.settings.fontSize);
-            i.setShowPrintMargin(this.settings.printMargin);
-            i.setHighlightActiveLine(this.settings.highlightLine);
-            i.setDisplayIndentGuides(this.settings.indentGuides);
-            i.getSession().setUseWrapMode(this.settings.wrapMode);
-            this.setTabSize(this.settings.tabSize);
-            this.setSoftTabs(this.settings.softTabs);
 
             this.changeListener(i);
             this.cursorTracking(i);
@@ -748,6 +801,8 @@
                     i.setSession(proxySession);
                 }
             }
+            this.applySettings(i);
+            
             this.setActive(i);
         },
 
@@ -826,12 +881,12 @@
 
                     // Mark the mode as loaded
                     editorModes[m] = true;
-                    var EditorMode = require('ace/mode/' + m).Mode;
+                    var EditorMode = ace.require('ace/mode/' + m).Mode;
                     i.getSession().setMode(new EditorMode());
                 }, true);
             } else {
 
-                var EditorMode = require('ace/mode/' + m).Mode;
+                var EditorMode = ace.require('ace/mode/' + m).Mode;
                 i.getSession().setMode(new EditorMode());
 
             }
@@ -1023,6 +1078,22 @@
             // LocalStorage
             localStorage.setItem('codiad.editor.wrapMode', w);
         },
+        
+        //////////////////////////////////////////////////////////////////
+        //
+        // Set last position of modal to be saved
+        //
+        // Parameters:
+        //   t - {Boolean} (false for Automatic Position, true for Last Position)
+        //   i - {Editor}  (If omitted, Defaults to all editors)
+        //
+        //////////////////////////////////////////////////////////////////
+
+        setPersistentModal: function(t, i) {
+            this.settings.persistentModal = t;
+            // LocalStorage
+            localStorage.setItem('codiad.editor.persistentModal', t);
+        },
 
         //////////////////////////////////////////////////////////////////
         //
@@ -1038,6 +1109,23 @@
             this.settings.rightSidebarTrigger = t;
             // LocalStorage
             localStorage.setItem('codiad.editor.rightSidebarTrigger', t);
+        },
+        
+        //////////////////////////////////////////////////////////////////
+        //
+        // Set trigger for clicking on the filemanager
+        //
+        // Parameters:
+        //   t - {Boolean} (false for Hover, true for Click)
+        //   i - {Editor}  (If omitted, Defaults to all editors)
+        //
+        //////////////////////////////////////////////////////////////////
+
+        setFileManagerTrigger: function(t, i) {
+            this.settings.fileManagerTrigger = t;
+            // LocalStorage
+            localStorage.setItem('codiad.editor.fileManagerTrigger', t);
+            codiad.project.loadSide();
         },
         
         
@@ -1219,9 +1307,9 @@
             clearInterval(codiad._cursorPoll);
             codiad._cursorPoll = setInterval(function() {
                 $('#cursor-position')
-                    .html('Ln: '
+                    .html(i18n('Ln') + ': '
                           + (i.getCursorPosition().row + 1)
-                          + ' &middot; Col: '
+                          + ' &middot; ' + i18n('Col') + ': '
                           + i.getCursorPosition().column
                          );
             }, 100);

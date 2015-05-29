@@ -82,8 +82,6 @@
             $('#editor-region')
                 .css({
                 'margin-left': marginL + 'px',
-                'width': ($('body')
-                    .outerWidth() - reduction) + 'px',
                 'height': ($('body')
                     .outerHeight()) + 'px'
             });
@@ -96,8 +94,7 @@
         });
 
         $('#settings').click(function(){
-            codiad.modal.load(400, 'components/editor/dialog.php?action=settings');
-            codiad.modal.hideOverlay();
+            codiad.settings.show();
         });
     });
 

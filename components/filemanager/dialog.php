@@ -8,7 +8,6 @@
 
 require_once('../../common.php');
 require_once('class.filemanager.php');
-
 //////////////////////////////////////////////////////////////////
 // Verify Session or Key
 //////////////////////////////////////////////////////////////////
@@ -68,7 +67,7 @@ switch($_GET['action']){
     case 'preview':
     ?>
     <label><?php i18n("Inline Preview"); ?></label>
-    <div><br><br><img src="<?php echo($_GET['path']); ?>"><br><br></div>
+    <div><br><br><img src="<?php echo(str_replace(BASE_PATH . "/", "", WORKSPACE) . "/" . $_GET['path']); ?>"><br><br></div>
     <button class="btn-right" onclick="codiad.modal.unload();return false;"><?php i18n("Close"); ?></button>
     <?php
     break;
@@ -111,6 +110,12 @@ switch($_GET['action']){
                     <option value="1"><?php i18n("Workspace Projects"); ?></option>
                     <?php } ?>
                 </select>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="3">
+               <label><?php i18n("File Type:"); ?></label>
+               <input type="text" name="search_file_type" placeholder="<?php i18n("space seperated file types eg: js c php"); ?>">
             </td>
         </tr>
     </table>
